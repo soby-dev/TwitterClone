@@ -4,7 +4,7 @@ Pipfile.lock
 *.pot
 *.pyc
 __pycache__/
-.backend/settings.py
+./backend/backend/settings.py
 db.sqlite3
 db.sqlite3-journal
 media

@@ -1,3 +1,4 @@
+from functools import partial
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 
@@ -8,12 +9,15 @@ from rest_framework.response import Response
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.decorators import parser_classes
 
-from .models import Tweet
+from .models import Tweet, Like
 
 from django.contrib.auth.models import User
 
 
 # Create your views here.
+
+
+user1 = User.objects.get(username='soby')
 
 
 @api_view(['GET'])
@@ -33,7 +37,6 @@ def home(request):
 
 @api_view(['GET'])
 def tweetList(request):
-    user1 = User.objects.get(username='soby')
     tweet = Tweet.objects.filter(author=user1)
     serializer = TweetSerializer(tweet, many=True)
 
@@ -59,11 +62,31 @@ def tweetCreate(request):
     return Response(serializer.data)
 
 
-# class tweetCreate(ListAPIView):
-#     queryset = Tweet.objects.all()
-#     serializer_class = TweetSerializer
+@api_view(['POST'])
+@parser_classes([FormParser, MultiPartParser])
+def tweetLike(request, pk):
+    tweet = Tweet.objects.get(code=pk)
 
-#     def post(self, request, *args, **kwargs):
-#         file = request.data['file']
-#         image = Tweet.objects.create(image=file)
-#         return HttpResponse('uploaded')
+    # check if user has liked the tweet before so next click unlikes it
+    hasLiked = Like.objects.get(code=pk, likedBy=user1)
+    if hasLiked:
+        data = {"likes": tweet.likes - 1}
+        Like.objects.get(likedBy=user1, tweetcode=pk).delete()
+    else:
+        data = {"likes": tweet.likes + 1}
+        Like(likedBy=user1, tweetcode=pk)
+
+    serializer = TweetSerializer(instance=tweet, data=data, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+
+    return Response(serializer.data)
+
+
+@api_view(['DELETE'])
+def tweetDelete(request, pk):
+    tweet = Tweet.objects.get(code=pk)
+    tweet.delete()
+
+    return Response('delete successful')

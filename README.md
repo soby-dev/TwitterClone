@@ -1,1 +1,4 @@
 # TwitterClone
+
+dependencies
+-django
